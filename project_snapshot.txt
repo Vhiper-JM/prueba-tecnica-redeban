@@ -1,0 +1,696 @@
+=== PROJECT DIRECTORY TREE ===
+
+|-- prueba-tecnica-redeban
+|   |-- README.md
+|   |-- app.py
+|   |-- complete_project_snapshot.py
+|   |-- config.py
+|   |-- pytest.ini
+|   |-- requirements.txt
+|-- parameter_service
+|   |-- __init__.py
+|   |-- models
+|   |   |-- parameter_model.py
+|-- tests
+|   |-- test_factory.py
+|   |-- test_parameter_model.py
+|-- .pytest_cache
+|   |-- CACHEDIR.TAG
+|   |-- README.md
+|   |-- v
+|   |   |-- cache
+|   |   |   |-- lastfailed
+|   |   |   |-- nodeids
+
+
+=== PROJECT FILE CONTENTS ===
+
+Generated: 2025-10-17T13:03:56.353735
+Root directory: /home/vhiper/Desktop/retoRedeban/prueba-tecnica-redeban
+Excluded file extensions: .zip, .jpg, .pyc, .jpeg, .log, .tar.gz, .gif, .png
+
+
+--- DIRECTORY: . ---
+
+--- FILE: README.md ---
+
+# prueba-tecnica-redeban
+Python Microservice (using Flask)
+Service: CRU (Create Read Update) parameters
+Parameters DataType: Number, JSON, Boolean, String, Array
+
+Backend: Python/Flask
+RelationalDB: MySQL
+
+Deployable Environments: Cluster, Kubernetes and/or AWS ECS
+Deployable Branches: Desarrollo, Pruebas y Produccion
+
+Core Functionalities
+- CRU Operations
+- Data integrity/validation (input and output)
+
+Design Pattern & Architecture
+
+
+--------------------------------------------------
+
+--- FILE: app.py ---
+
+# app.py
+
+from parameter_service import create_app, db
+from parameter_service.models.parameter_model import Parameter # Ensure models are imported
+
+app = create_app('development')
+
+# In a development setup, you can create the tables here for convenience
+# Note: In production, you'd use a separate migration tool (like Flask-Migrate/Alembic)
+with app.app_context():
+    db.create_all()
+
+# CRU actions (Future implementation)
+# @app.route('/api/v1/parameters', methods=['POST'])
+# ...
+
+if __name__ == "__main__":
+    app.run(debug=True, host='0.0.0.0', port=5000)
+--------------------------------------------------
+
+--- FILE: complete_project_snapshot.py ---
+
+import os
+import pathlib
+from datetime import datetime
+
+def create_project_snapshot(root_dir=".", output_file="project_snapshot.txt", excluded_dirs=None, excluded_files=None):
+    """
+    Generates a single file with both the project's directory tree and the contents of each file.
+
+    The script excludes common directories like __pycache__, .git, venv, and the output file itself.
+    You can customize the excluded directories and files by passing sets to the function.
+    
+    Args:
+        root_dir (str): The starting directory to traverse.
+        output_file (str): The name of the output file.
+        excluded_dirs (set): A set of directory names to exclude.
+        excluded_files (set): A set of file names to exclude.
+    """
+    # Define default directories and files to exclude.
+    default_excluded_dirs = {'.git', '__pycache__', '.venv', 'env', 'venv', 'clarityStreamEnv'}
+    default_excluded_files = {output_file, '.env', '.gitignore'}
+    excluded_extensions = {'.pyc', '.png', '.jpg', '.jpeg', '.gif', '.zip', '.tar.gz', '.log'}
+    
+    # Combine default exclusions with any user-provided ones.
+    all_excluded_dirs = default_excluded_dirs.union(excluded_dirs or set())
+    all_excluded_files = default_excluded_files.union(excluded_files or set())
+
+    # Get the name of the root directory.
+    root_name = os.path.basename(os.path.abspath(root_dir))
+    
+    with open(output_file, 'w', encoding='utf-8') as f:
+        # --- Section 1: Project Tree ---
+        f.write("=== PROJECT DIRECTORY TREE ===\n\n")
+        f.write(f"|-- {root_name}\n")
+        
+        # Walk the directory tree to create the visual representation.
+        for root, dirs, files in os.walk(root_dir, topdown=True):
+            # Exclude directories specified.
+            dirs[:] = [d for d in dirs if d not in all_excluded_dirs]
+            
+            relative_path = os.path.relpath(root, start=root_dir)
+            if relative_path == ".":
+                # Process files in the root directory.
+                for file in sorted(files):
+                    if file not in all_excluded_files and pathlib.Path(file).suffix not in excluded_extensions:
+                        f.write(f"|   |-- {file}\n")
+                continue
+
+            level = relative_path.count(os.sep)
+            prefix = '|   ' * level + '|-- '
+            f.write(f"{prefix}{os.path.basename(root)}\n")
+            
+            sub_prefix = '|   ' * (level + 1) + '|-- '
+            for file in sorted(files):
+                if file not in all_excluded_files and pathlib.Path(file).suffix not in excluded_extensions:
+                    f.write(f"{sub_prefix}{file}\n")
+        
+        # --- Section 2: File Contents ---
+        f.write("\n\n=== PROJECT FILE CONTENTS ===\n\n")
+        f.write(f"Generated: {datetime.now().isoformat()}\n")
+        f.write(f"Root directory: {os.path.abspath(root_dir)}\n")
+        f.write(f"Excluded file extensions: {', '.join(excluded_extensions)}\n\n")
+
+        # Walk the directory tree again to capture file contents.
+        for root, dirs, files in os.walk(root_dir):
+            dirs[:] = [d for d in dirs if d not in all_excluded_dirs]
+            
+            relative_dir_path = os.path.relpath(root, start=root_dir)
+            f.write(f"\n--- DIRECTORY: {relative_dir_path or '.'} ---\n")
+
+            for file in sorted(files):
+                file_path = pathlib.Path(root) / file
+                
+                # Skip excluded files and extensions.
+                if (file in all_excluded_files or 
+                    file_path.suffix in excluded_extensions):
+                    continue
+                
+                f.write(f"\n--- FILE: {file_path.relative_to(root_dir)} ---\n")
+                
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as file_content:
+                        content = file_content.read()
+                        f.write(f"\n{content}\n")
+                except UnicodeDecodeError:
+                    f.write("\n[Binary content - not displayed]\n")
+                except Exception as e:
+                    f.write(f"\n[Error reading file: {str(e)}]\n")
+                
+                f.write("-" * 50 + "\n")
+    
+    print(f"Project snapshot saved to '{output_file}' successfully.")
+
+if __name__ == "__main__":
+    # Example usage:
+    print("Creating a combined project snapshot...")
+    # You can add custom excluded directories or files here.
+    # For example: create_project_snapshot(excluded_dirs={'dist'}, excluded_files={'README.md'})
+    create_project_snapshot()
+    print("Combined snapshot generated successfully.")
+
+--------------------------------------------------
+
+--- FILE: config.py ---
+
+# config.py
+
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+
+class Config:
+    """Base configuration class."""
+    
+    # ------------------
+    # Core Application Settings
+    # ------------------
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'default-dev-secret-key')
+    LOG_LEVEL = 'INFO'
+    TESTING = False
+    
+    # ------------------
+    # Database Settings (MySQL)
+    # ------------------
+    # The format will be: mysql+pymysql://<user>:<password>@<host>:<port>/<db_name>
+    # Note: We rely on the Application Factory to validate this is set 
+    # for non-testing environments.
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') 
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+
+class DevelopmentConfig(Config):
+    """Configuration for development environment."""
+    DEBUG = True
+
+
+class TestingConfig(Config):
+    """Configuration for testing environment."""
+    TESTING = True
+    # Use an in-memory SQLite database URI for speed and isolation in unit tests.
+    SQLALCHEMY_DATABASE_URI = os.environ.get('TEST_DATABASE_URL', 'sqlite:///:memory:')
+
+
+class ProductionConfig(Config):
+    """Configuration for production environment."""
+    DEBUG = False
+    LOG_LEVEL = 'WARNING'
+
+
+# Dictionary to easily get the correct configuration class
+config_by_name = {
+    'development': DevelopmentConfig,
+    'testing': TestingConfig,
+    'production': ProductionConfig,
+    'default': DevelopmentConfig,
+}
+--------------------------------------------------
+
+--- FILE: pytest.ini ---
+
+# pytest.ini
+
+[pytest]
+# Add the current directory '.' to the Python path so that 'parameter_service' 
+# can be imported directly, resolving the ModuleNotFoundError.
+pythonpath = .
+
+# Specify directories to search for tests (optional, but good practice)
+testpaths = tests
+--------------------------------------------------
+
+--- FILE: requirements.txt ---
+
+blinker==1.9.0
+click==8.3.0
+Flask==3.1.2
+Flask-SQLAlchemy==3.1.1
+greenlet==3.2.4
+iniconfig==2.1.0
+itsdangerous==2.2.0
+Jinja2==3.1.6
+MarkupSafe==3.0.3
+packaging==25.0
+pluggy==1.6.0
+Pygments==2.19.2
+PyMySQL==1.1.2
+pytest==8.4.2
+pytest-mock==3.15.1
+python-dotenv==1.1.1
+SQLAlchemy==2.0.44
+typing_extensions==4.15.0
+Werkzeug==3.1.3
+
+--------------------------------------------------
+
+--- DIRECTORY: parameter_service ---
+
+--- FILE: parameter_service/__init__.py ---
+
+# parameter_service/__init__.py
+
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+from config import config_by_name
+
+# Initialize SQLAlchemy outside of the factory, but without binding to the app yet.
+db = SQLAlchemy()
+
+def create_app(config_name: str = 'default') -> Flask:
+    """
+    Flask application factory function.
+    """
+    app = Flask(__name__)
+    
+    # 1. Load Configuration
+    config_object = config_by_name.get(config_name, config_by_name['default'])
+    app.config.from_object(config_object)
+    
+    # 2. Initialize Extensions
+    # Bind the SQLAlchemy object to the running Flask application
+    try:
+        db.init_app(app)
+    except ValueError as e:
+        # This will catch the error if DATABASE_URL is not set for a non-testing env.
+        app.logger.error(f"Failed to initialize database: {e}")
+        raise
+
+    # 3. Register Blueprints (Future Step)
+    # Import models here to ensure they are registered with SQLAlchemy when called
+    from .models.parameter_model import Parameter 
+    
+    # Optional: Basic health check route
+    @app.route('/health')
+    def health_check():
+        return {'status': 'ok'}, 200
+
+    return app
+--------------------------------------------------
+
+--- DIRECTORY: parameter_service/models ---
+
+--- FILE: parameter_service/models/parameter_model.py ---
+
+# parameter_service/models/parameter_model.py
+
+import json
+from datetime import datetime
+from typing import Any, Union, Dict, List
+from flask_sqlalchemy import SQLAlchemy
+
+from parameter_service import db # Assumes db is initialized in __init__.py
+
+
+class ParameterType:
+    """Defines the allowed, canonical types for parameter values."""
+    STRING = 'String'
+    NUMBER = 'Number'
+    BOOLEAN = 'Boolean'
+    JSON = 'JSON'
+    ARRAY = 'Array'
+    
+    ALLOWED_TYPES = [STRING, NUMBER, BOOLEAN, JSON, ARRAY]
+
+
+class Parameter(db.Model):
+    """
+    Represents a configuration parameter in the database.
+    """
+    __tablename__ = 'parameters'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(128), unique=True, nullable=False, index=True)
+    value_type = db.Column(db.String(50), nullable=False) # Stores 'String', 'Number', etc.
+    value_storage = db.Column(db.Text, nullable=True)  # Stores serialized value
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    def __repr__(self):
+        return f"<Parameter(id={self.id}, name='{self.name}', type='{self.value_type}')>"
+
+    @property
+    def value(self) -> Any:
+        """Deserializes the stored string value_storage back into its native Python type."""
+        if self.value_storage is None:
+            return None
+            
+        if self.value_type == ParameterType.STRING:
+            return self.value_storage
+        elif self.value_type == ParameterType.NUMBER:
+            try:
+                # Prioritize int if no decimal point, otherwise use float
+                return float(self.value_storage) if '.' in self.value_storage else int(self.value_storage)
+            except ValueError:
+                return self.value_storage
+        elif self.value_type == ParameterType.BOOLEAN:
+            # Standardize string representations to Python boolean
+            return self.value_storage.lower() == 'true'
+        elif self.value_type in [ParameterType.JSON, ParameterType.ARRAY]:
+            try:
+                # JSON/Array are stored as JSON strings
+                return json.loads(self.value_storage)
+            except json.JSONDecodeError:
+                return self.value_storage  # Return raw string on decoding failure
+        else:
+            return self.value_storage
+
+    @value.setter
+    def value(self, raw_value: Any):
+        """
+        Serializes the Python value into a string for storage (value_storage) 
+        and sets the value_type.
+        """
+        if raw_value is None:
+            self.value_type = ParameterType.STRING
+            self.value_storage = None
+            return
+
+        # 🚨 FIX: Check for 'bool' first (bool is a subclass of int in Python)
+        if isinstance(raw_value, bool):  
+            self.value_type = ParameterType.BOOLEAN
+            self.value_storage = str(raw_value).lower()
+            
+        elif isinstance(raw_value, (int, float)):
+            self.value_type = ParameterType.NUMBER
+            self.value_storage = str(raw_value)
+            
+        elif isinstance(raw_value, str):
+            self.value_type = ParameterType.STRING
+            self.value_storage = raw_value
+            
+        elif isinstance(raw_value, (dict, list)):
+            self.value_type = ParameterType.ARRAY if isinstance(raw_value, list) else ParameterType.JSON
+            # Serialize the complex object into a JSON string for storage
+            self.value_storage = json.dumps(raw_value)
+        else:
+            # Fallback for unexpected types
+            self.value_type = ParameterType.STRING
+            self.value_storage = str(raw_value)
+            
+    def to_dict(self) -> Dict[str, Any]:
+        """Converts the Parameter object into a serializable dictionary."""
+        return {
+            'id': self.id,
+            'name': self.name,
+            'value_type': self.value_type,
+            'value': self.value, # Uses the @property for deserialized value
+            'created_at': self.created_at.isoformat(),
+            'updated_at': self.updated_at.isoformat(),
+        }
+--------------------------------------------------
+
+--- DIRECTORY: tests ---
+
+--- FILE: tests/test_factory.py ---
+
+# tests/test_factory.py
+
+import pytest
+import os
+from config import TestingConfig 
+from parameter_service import create_app
+
+
+# Setup/Teardown for environment variable handling
+@pytest.fixture() 
+def setup_env_vars():
+    """Ensure the base environment variables are set for testing."""
+    # Set the required variables before tests run
+    os.environ['DATABASE_URL'] = 'mysql+pymysql://test:test@localhost:3306/test_db'
+    os.environ['TEST_DATABASE_URL'] = 'sqlite:///:memory:' 
+    yield
+    # Safely clean up environment variables after tests complete
+    os.environ.pop('DATABASE_URL', None)
+    os.environ.pop('TEST_DATABASE_URL', None)
+    
+
+def test_config_default_development(setup_env_vars): 
+    """Test that the default config loads the Development environment."""
+    app = create_app()
+    assert app.config['DEBUG'] is True
+    assert app.testing is False
+    assert 'default-dev-secret-key' in app.config['SECRET_KEY']
+
+
+def test_config_testing_environment():
+    """Test that the 'testing' config loads the correct settings."""
+    app = create_app('testing')
+    assert app.testing is True
+    assert app.config['SQLALCHEMY_DATABASE_URI'] == 'sqlite:///:memory:'
+    assert app.config['DEBUG'] is False
+
+
+def test_config_production_environment(setup_env_vars): 
+    """Test that the 'production' config loads the correct settings."""
+    app = create_app('production')
+    assert app.config['DEBUG'] is False
+    assert app.testing is False
+    assert 'mysql+pymysql' in app.config['SQLALCHEMY_DATABASE_URI']
+
+
+def test_database_url_is_required_in_base_config(setup_env_vars):
+    """Test that a RuntimeError is raised if the required DATABASE_URL is missing 
+       for non-testing environments."""
+    
+    # Manually remove the env variable before creating the app
+    os.environ.pop('DATABASE_URL', None) 
+
+    # We expect a RuntimeError when SQLAlchemy attempts to initialize with a None URI.
+    with pytest.raises(RuntimeError) as excinfo:
+        create_app('default')
+        
+    assert "SQLALCHEMY_DATABASE_URI" in str(excinfo.value) or "must be set" in str(excinfo.value)
+    
+    # Ensure testing config still works without the external DATABASE_URL
+    app = create_app('testing')
+    assert app.testing is True
+--------------------------------------------------
+
+--- FILE: tests/test_parameter_model.py ---
+
+import pytest
+# ADDED IMPORT: Fixes NameError for JSON/Array tests
+import json 
+from parameter_service import create_app, db
+# 🚨 FIX APPLIED: Changed 'parameter' to 'parameter_model' to match the file name
+from parameter_service.models.parameter_model import Parameter, ParameterType 
+
+
+# --- FIXTURES (db_session is already correct from previous step) ---
+
+@pytest.fixture(scope='module')
+def test_app():
+    # ... (setup code)
+    app = create_app('testing')
+    with app.app_context():
+        # Create all tables for the models
+        db.create_all()
+        yield app
+        # Drop all tables after tests are done
+        db.drop_all()
+
+@pytest.fixture(scope='function')
+def db_session(test_app):
+    """Provide a clean session with transaction rollback for each test function."""
+    with test_app.app_context():
+        db.session.begin_nested() 
+        yield db.session 
+        db.session.rollback()
+        db.session.remove() 
+
+# --- TESTS ---
+
+@pytest.mark.parametrize("input_value, expected_type, expected_deserialized_value", [
+    # String types
+    ("Hello World", ParameterType.STRING, "Hello World"),
+    ("", ParameterType.STRING, ""),
+    # Number types (Integer)
+    (12345, ParameterType.NUMBER, 12345),
+    (-100, ParameterType.NUMBER, -100),
+    # Number types (Float)
+    (3.14159, ParameterType.NUMBER, 3.14159),
+    (0.0, ParameterType.NUMBER, 0.0),
+    # Boolean types
+    (True, ParameterType.BOOLEAN, True), # <-- Fix applied in parameter_model.py setter
+    (False, ParameterType.BOOLEAN, False), # <-- Fix applied in parameter_model.py setter
+    # JSON type (Dict)
+    ({'key': 'value', 'count': 1}, ParameterType.JSON, {'key': 'value', 'count': 1}),
+    # Array type (List)
+    ([1, 2, "a"], ParameterType.ARRAY, [1, 2, "a"]),
+    # Null value
+    (None, ParameterType.STRING, None),
+])
+def test_value_setter_and_getter_polymorphism(db_session, input_value, expected_type, expected_deserialized_value):
+    """Test serialization and deserialization across all supported parameter types."""
+    param = Parameter(name='test_param', value=input_value)
+    
+    # Test setter logic
+    assert param.value_type == expected_type
+    
+    if expected_type in [ParameterType.JSON, ParameterType.ARRAY]:
+        # JSON/Array should be stored as a JSON string
+        assert isinstance(param.value_storage, str)
+        # Ensure it's valid JSON that was stored (fixed by adding import json)
+        assert expected_deserialized_value == json.loads(param.value_storage)
+    elif expected_type == ParameterType.BOOLEAN:
+        # Booleans should be stored as 'true' or 'false' lowercase strings
+        assert param.value_storage == str(input_value).lower()
+    else:
+        # Other types should be stored as their string representation
+        # FIX: Ensure we assert against the input_value's string representation, 
+        # or None if input_value is None.
+        assert param.value_storage == str(input_value) if input_value is not None else None
+        
+    # Commit and retrieve from database (simulate real workflow)
+    db_session.add(param)
+    db_session.commit()
+    retrieved_param = db_session.get(Parameter, param.id)
+    
+    # Test getter logic (deserialization)
+    assert retrieved_param.value == expected_deserialized_value
+    assert retrieved_param.value_type == expected_type
+
+
+def test_updated_at_timestamp(db_session):
+    """Test that the updated_at field is correctly modified on update."""
+    param = Parameter(name='version', value=1.0)
+    db_session.add(param)
+    db_session.commit()
+
+    initial_updated_at = param.updated_at
+    
+    # Simulate a small time delay for updated_at to be different
+    # In a real application, the database takes care of the timestamp difference.
+    # In SQLite/in-memory, we rely on SQLAlchemy's update logic.
+    
+    param.value = 2.0  # Trigger the update
+    db_session.add(param)
+    db_session.commit()
+    
+    retrieved_param = db_session.get(Parameter, param.id)
+
+    # The updated_at time should be later than the created_at time (which is the initial updated_at)
+    # The actual difference might be milliseconds, but it should be non-equal.
+    assert retrieved_param.updated_at > initial_updated_at
+    assert retrieved_param.value == 2.0
+
+
+def test_to_dict_method(db_session):
+    """Test the object serialization method (to_dict)."""
+    param = Parameter(name='settings', value={'theme': 'dark'})
+    db_session.add(param)
+    db_session.commit()
+    
+    param_dict = param.to_dict()
+    
+    assert isinstance(param_dict, dict)
+    assert param_dict['name'] == 'settings'
+    assert param_dict['value_type'] == ParameterType.JSON
+    assert param_dict['value'] == {'theme': 'dark'}
+    assert 'id' in param_dict
+    assert 'created_at' in param_dict
+    assert 'updated_at' in param_dict
+--------------------------------------------------
+
+--- DIRECTORY: .pytest_cache ---
+
+--- FILE: .pytest_cache/CACHEDIR.TAG ---
+
+Signature: 8a477f597d28d172789f06886806bc55
+# This file is a cache directory tag created by pytest.
+# For information about cache directory tags, see:
+#	https://bford.info/cachedir/spec.html
+
+--------------------------------------------------
+
+--- FILE: .pytest_cache/README.md ---
+
+# pytest cache directory #
+
+This directory contains data from the pytest's cache plugin,
+which provides the `--lf` and `--ff` options, as well as the `cache` fixture.
+
+**Do not** commit this to version control.
+
+See [the docs](https://docs.pytest.org/en/stable/how-to/cache.html) for more information.
+
+--------------------------------------------------
+
+--- DIRECTORY: .pytest_cache/v ---
+
+--- DIRECTORY: .pytest_cache/v/cache ---
+
+--- FILE: .pytest_cache/v/cache/lastfailed ---
+
+{
+  "tests/test_factory.py::test_config_default_development": true,
+  "tests/test_factory.py::test_config_production_environment": true,
+  "tests/test_parameter_model.py::test_value_setter_and_getter_polymorphism[True-Boolean-True]": true,
+  "tests/test_parameter_model.py::test_value_setter_and_getter_polymorphism[False-Boolean-False]": true,
+  "tests/test_parameter_model.py::test_value_setter_and_getter_polymorphism[input_value8-JSON-expected_deserialized_value8]": true,
+  "tests/test_parameter_model.py::test_value_setter_and_getter_polymorphism[input_value9-Array-expected_deserialized_value9]": true,
+  "tests/test_parameter_model.py::test_value_setter_and_getter_polymorphism[None-String-None]": true,
+  "tests/test_parameter_model.py::test_value_setter_and_getter_polymorphism[-String-]": true,
+  "tests/test_parameter_model.py::test_value_setter_and_getter_polymorphism[12345-Number-12345]": true,
+  "tests/test_parameter_model.py::test_value_setter_and_getter_polymorphism[-100-Number--100]": true,
+  "tests/test_parameter_model.py::test_value_setter_and_getter_polymorphism[3.14159-Number-3.14159]": true,
+  "tests/test_parameter_model.py::test_value_setter_and_getter_polymorphism[0.0-Number-0.0]": true
+}
+--------------------------------------------------
+
+--- FILE: .pytest_cache/v/cache/nodeids ---
+
+[
+  "tests/test_factory.py::test_config_default_development",
+  "tests/test_factory.py::test_config_production_environment",
+  "tests/test_factory.py::test_config_testing_environment",
+  "tests/test_factory.py::test_database_url_is_required_in_base_config",
+  "tests/test_parameter_model.py::test_parameter_creation_and_retrieval",
+  "tests/test_parameter_model.py::test_to_dict_method",
+  "tests/test_parameter_model.py::test_updated_at_timestamp",
+  "tests/test_parameter_model.py::test_value_setter_and_getter_polymorphism[-100-Number--100]",
+  "tests/test_parameter_model.py::test_value_setter_and_getter_polymorphism[-String-]",
+  "tests/test_parameter_model.py::test_value_setter_and_getter_polymorphism[0.0-Number-0.0]",
+  "tests/test_parameter_model.py::test_value_setter_and_getter_polymorphism[12345-Number-12345]",
+  "tests/test_parameter_model.py::test_value_setter_and_getter_polymorphism[3.14159-Number-3.14159]",
+  "tests/test_parameter_model.py::test_value_setter_and_getter_polymorphism[False-Boolean-False]",
+  "tests/test_parameter_model.py::test_value_setter_and_getter_polymorphism[Hello World-String-Hello World]",
+  "tests/test_parameter_model.py::test_value_setter_and_getter_polymorphism[None-String-None]",
+  "tests/test_parameter_model.py::test_value_setter_and_getter_polymorphism[True-Boolean-True]",
+  "tests/test_parameter_model.py::test_value_setter_and_getter_polymorphism[input_value8-JSON-expected_deserialized_value8]",
+  "tests/test_parameter_model.py::test_value_setter_and_getter_polymorphism[input_value9-Array-expected_deserialized_value9]"
+]
+--------------------------------------------------
